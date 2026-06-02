@@ -1,0 +1,2 @@
+# Pas de dépendances externes — l'app utilise uniquement la bibliothèque standard Python.
+# Ce fichier doit exister pour que Render reconnaisse l'application Python.
