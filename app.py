@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Explorateur musical underground — version Render.com.
+Explorateur musical underground - version Render avec authentification.
 
-Adapté pour déploiement sur Render :
-- écoute sur 0.0.0.0 (pas 127.0.0.1)
-- utilise le port défini par la variable d'environnement PORT
-- pas d'ouverture automatique du navigateur (inutile sur un serveur)
-
-Pour usage en local : python3 app.py
+Authentification HTTP Basic :
+- Variables d'environnement APP_USERNAME (defaut: "larsen") et APP_PASSWORD
+- Si APP_PASSWORD n'est pas defini, le service refuse toutes les requetes
+- Le navigateur memorise les credentials pour la session
 """
 
+import base64
+import hmac
 import json
 import os
 import urllib.parse
@@ -18,14 +18,32 @@ import urllib.error
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import socket
 
-# ---------- Configuration ----------
 PORT = int(os.environ.get('PORT', 8765))
-LASTFM_KEY = 'b25b959554ed76058ac220b7b2e0a026'
+LASTFM_KEY = os.environ.get('LASTFM_KEY', 'b25b959554ed76058ac220b7b2e0a026')
 MB_BASE = 'https://musicbrainz.org/ws/2'
 LB_BASE = 'https://labs.api.listenbrainz.org'
 LFM_BASE = 'https://ws.audioscrobbler.com/2.0/'
 USER_AGENT = 'ExplorateurMusicalLeLarsen/1.0 (contact: lelarsen@example.com)'
 TIMEOUT = 10
+
+APP_USERNAME = os.environ.get('APP_USERNAME', 'larsen')
+APP_PASSWORD = os.environ.get('APP_PASSWORD', '')
+AUTH_REALM = 'Le Larsen - Explorateur musical'
+
+
+def check_auth(auth_header):
+    if not APP_PASSWORD:
+        return False
+    if not auth_header or not auth_header.startswith('Basic '):
+        return False
+    try:
+        decoded = base64.b64decode(auth_header[6:]).decode('utf-8')
+        user, _, password = decoded.partition(':')
+        u_ok = hmac.compare_digest(user, APP_USERNAME)
+        p_ok = hmac.compare_digest(password, APP_PASSWORD)
+        return u_ok and p_ok
+    except Exception:
+        return False
 
 
 def http_get_json(url, headers=None):
@@ -40,7 +58,7 @@ def http_get_json(url, headers=None):
     except urllib.error.HTTPError as e:
         return None, f'HTTP {e.code}'
     except urllib.error.URLError as e:
-        return None, f'Réseau : {e.reason}'
+        return None, f'Reseau : {e.reason}'
     except json.JSONDecodeError as e:
         return None, f'JSON invalide : {e}'
     except socket.timeout:
@@ -102,7 +120,8 @@ INDEX_HTML = r'''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Explorateur musical — Le Larsen</title>
+<meta name="robots" content="noindex, nofollow">
+<title>Explorateur musical - Le Larsen</title>
 <style>
   :root {
     --bg: #faf9f6; --surface: #ffffff; --surface-2: #f1efe8;
@@ -197,12 +216,6 @@ INDEX_HTML = r'''<!DOCTYPE html>
     padding: 8px 12px; margin-bottom: 1rem;
     font-size: 12px; color: var(--warning);
   }
-  .wakeup-notice {
-    background: var(--info-bg); color: var(--info);
-    padding: 8px 12px; margin-bottom: 1rem;
-    border-radius: var(--radius); font-size: 12px;
-    text-align: center;
-  }
   .sources-footer {
     margin-top: 2rem; padding-top: 1rem;
     border-top: 0.5px solid var(--border);
@@ -215,7 +228,7 @@ INDEX_HTML = r'''<!DOCTYPE html>
 <div class="container">
 
 <h1>Explorateur musical underground</h1>
-<p class="subtitle">Le Larsen · triangulation MusicBrainz + ListenBrainz + Last.fm</p>
+<p class="subtitle">Le Larsen - triangulation MusicBrainz + ListenBrainz + Last.fm</p>
 
 <div class="search-row">
   <input type="text" id="artist-input" placeholder="ex. Chat Pile, Shellac, Mendelson..." autofocus>
@@ -229,8 +242,6 @@ INDEX_HTML = r'''<!DOCTYPE html>
   <button class="seed-chip" data-artist="Beak>">Beak&gt;</button>
   <button class="seed-chip" data-artist="Ghost Dubs">Ghost Dubs</button>
   <button class="seed-chip" data-artist="Programme">Programme</button>
-  <button class="seed-chip" data-artist="Föllakzoid">Föllakzoid</button>
-  <button class="seed-chip" data-artist="Usé">Usé</button>
 </div>
 
 <div id="status"></div>
@@ -241,8 +252,8 @@ INDEX_HTML = r'''<!DOCTYPE html>
 
 <div class="sources-footer">
   Sources :
-  <a href="https://musicbrainz.org/doc/MusicBrainz_API" target="_blank">MusicBrainz</a> ·
-  <a href="https://listenbrainz.readthedocs.io/" target="_blank">ListenBrainz</a> ·
+  <a href="https://musicbrainz.org/doc/MusicBrainz_API" target="_blank">MusicBrainz</a> &middot;
+  <a href="https://listenbrainz.readthedocs.io/" target="_blank">ListenBrainz</a> &middot;
   <a href="https://www.last.fm/api" target="_blank">Last.fm</a>.
 </div>
 
@@ -266,14 +277,14 @@ function artistCard(name, meta, sourceClass) {
       <div class="name">${escapeHtml(name)}</div>
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
     </div>
-    <button class="explore-btn" data-artist="${escapeHtml(name)}">→</button>
+    <button class="explore-btn" data-artist="${escapeHtml(name)}">&rarr;</button>
   </div>`;
 }
 function sectionWrap(titleHtml, bodyHtml, count) {
   return `<div class="section">
     <div class="section-head">
       <h3>${titleHtml}</h3>
-      <span class="count">${count} résultats</span>
+      <span class="count">${count} resultats</span>
     </div>${bodyHtml}
   </div>`;
 }
@@ -298,20 +309,20 @@ async function search(name) {
 
   if (result.errors && result.errors.length > 0) {
     document.getElementById('errors').innerHTML =
-      `<div class="errors">⚠ ${result.errors.map(escapeHtml).join(' · ')}</div>`;
+      `<div class="errors">! ${result.errors.map(escapeHtml).join(' / ')}</div>`;
   }
 
   if (result.candidates_only) {
     const candList = result.candidates.slice(0, 6).map((a, i) => {
-      const disambig = a.disambiguation ? ` — ${a.disambiguation}` : '';
+      const disambig = a.disambiguation ? ` - ${a.disambiguation}` : '';
       const country = a.country ? ` (${a.country})` : '';
       const ls = a['life-span'] || {};
-      const period = ls.begin ? ` · ${ls.begin}${ls.end ? '–' + ls.end : '–'}` : '';
+      const period = ls.begin ? ` - ${ls.begin}${ls.end ? '-' + ls.end : '-'}` : '';
       return `<button class="candidate-btn" data-mbid="${escapeHtml(a.id)}">${escapeHtml(a.name)}${escapeHtml(disambig)}${escapeHtml(country)}${escapeHtml(period)}</button>`;
     }).join('');
     document.getElementById('candidates').innerHTML = `
       <div class="candidates">
-        <div class="label">Plusieurs artistes correspondent — choisis :</div>
+        <div class="label">Plusieurs artistes correspondent - choisis :</div>
         ${candList}
       </div>`;
     document.querySelectorAll('.candidate-btn').forEach(btn => {
@@ -330,7 +341,7 @@ async function search(name) {
 }
 
 async function exploreByMbid(mbid) {
-  setStatus('Récupération...');
+  setStatus('Recuperation...');
   document.getElementById('sections').innerHTML = '';
   document.getElementById('candidates').innerHTML = '';
   document.getElementById('errors').innerHTML = '';
@@ -344,7 +355,7 @@ async function exploreByMbid(mbid) {
   }
   if (result.errors && result.errors.length > 0) {
     document.getElementById('errors').innerHTML =
-      `<div class="errors">⚠ ${result.errors.map(escapeHtml).join(' · ')}</div>`;
+      `<div class="errors">! ${result.errors.map(escapeHtml).join(' / ')}</div>`;
   }
   renderFull(result);
 }
@@ -355,10 +366,10 @@ function renderFull(result) {
   const tags = (result.tags || []).slice(0, 6);
   document.getElementById('current-artist').innerHTML = `
     <div class="current-artist">
-      <div class="label">Point de départ — MusicBrainz</div>
+      <div class="label">Point de depart - MusicBrainz</div>
       <div class="name">${escapeHtml(a.name)}</div>
       <div class="meta">
-        ${a.disambiguation ? escapeHtml(a.disambiguation) + ' · ' : ''}${a.country ? a.country + ' · ' : ''}${ls.begin || ''}${ls.end ? '–' + ls.end : (ls.begin ? '–' : '')}
+        ${a.disambiguation ? escapeHtml(a.disambiguation) + ' - ' : ''}${a.country ? a.country + ' - ' : ''}${ls.begin || ''}${ls.end ? '-' + ls.end : (ls.begin ? '-' : '')}
       </div>
       ${tags.length ? `<div class="tag-row">
         ${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
@@ -371,7 +382,7 @@ function renderFull(result) {
     const items = result.mb_relations.slice(0, 15).map(r =>
       artistCard(r.name, r.relation_label, 'source-mb'));
     sections.push(sectionWrap(
-      `Liens MusicBrainz <span class="source-note">— faits documentés</span>`,
+      `Liens MusicBrainz <span class="source-note">- faits documentes</span>`,
       `<div class="results">${items.join('')}</div>`, result.mb_relations.length));
   }
 
@@ -379,7 +390,7 @@ function renderFull(result) {
     const buttons = result.mb_labels.map(l =>
       `<button class="label-btn" data-label="${escapeHtml(l)}">${escapeHtml(l)}</button>`).join('');
     sections.push(sectionWrap(
-      `Labels associés <span class="source-note">— porte d'entrée vers la scène</span>`,
+      `Labels associes <span class="source-note">- porte d'entree vers la scene</span>`,
       `<div class="label-list">${buttons}</div>`, result.mb_labels.length));
   }
 
@@ -393,7 +404,7 @@ function renderFull(result) {
     }).filter(Boolean);
     if (items.length) {
       sections.push(sectionWrap(
-        `ListenBrainz <span class="source-note">— filtrage collaboratif</span>`,
+        `ListenBrainz <span class="source-note">- filtrage collaboratif</span>`,
         `<div class="results">${items.join('')}</div>`, items.length));
     }
   }
@@ -405,15 +416,15 @@ function renderFull(result) {
       return artistCard(a.name, meta, 'source-lfm');
     });
     sections.push(sectionWrap(
-      `Last.fm <span class="source-note">— cooccurrence d'écoute</span>`,
+      `Last.fm <span class="source-note">- coocurrence d'ecoute</span>`,
       `<div class="results">${items.join('')}</div>`, items.length));
   }
 
   if (sections.length === 0) {
-    setStatus(`Trouvé "${a.name}" mais aucune relation/similarité.`, 'warn');
+    setStatus(`Trouve "${a.name}" mais aucune relation/similarite.`, 'warn');
     return;
   }
-  setStatus(`${sections.length} axe(s) de découverte`);
+  setStatus(`${sections.length} axe(s) de decouverte`);
   document.getElementById('sections').innerHTML = sections.join('');
   wireUpButtons();
 }
@@ -430,9 +441,9 @@ function renderLastfmOnly(name, lfm) {
     return artistCard(a.name, meta, 'source-lfm');
   });
   document.getElementById('sections').innerHTML = sectionWrap(
-    `Last.fm <span class="source-note">— seule source</span>`,
+    `Last.fm <span class="source-note">- seule source</span>`,
     `<div class="results">${items.join('')}</div>`, items.length);
-  setStatus(`${items.length} résultats`);
+  setStatus(`${items.length} resultats`);
   wireUpButtons();
 }
 
@@ -469,6 +480,8 @@ document.querySelectorAll('.seed-chip').forEach(btn => {
 </body>
 </html>
 '''
+
+ROBOTS_TXT = "User-agent: *\nDisallow: /\n"
 
 
 def build_explore_result(mb_artist):
@@ -509,7 +522,7 @@ def build_explore_result(mb_artist):
         if rel.get('target-type') == 'artist' and rel.get('artist'):
             relations.append({
                 'name': rel['artist']['name'],
-                'relation_label': type_labels.get(rel.get('type', ''), rel.get('type', 'liée'))
+                'relation_label': type_labels.get(rel.get('type', ''), rel.get('type', 'liee'))
             })
         elif rel.get('target-type') == 'label' and rel.get('label'):
             ln = rel['label']['name']
@@ -542,17 +555,33 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _require_auth(self):
+        body = 'Authentification requise.'.encode('utf-8')
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', f'Basic realm="{AUTH_REALM}"')
+        self.send_header('Content-Type', 'text/plain; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed.query)
 
-        if parsed.path == '/' or parsed.path == '/index.html':
-            self._send(200, INDEX_HTML, 'text/html; charset=utf-8')
-            return
-
-        # Health check endpoint pour Render
         if parsed.path == '/health':
             self._send(200, {'status': 'ok'})
+            return
+        if parsed.path == '/robots.txt':
+            self._send(200, ROBOTS_TXT, 'text/plain; charset=utf-8')
+            return
+
+        auth_header = self.headers.get('Authorization', '')
+        if not check_auth(auth_header):
+            self._require_auth()
+            return
+
+        if parsed.path == '/' or parsed.path == '/index.html':
+            self._send(200, INDEX_HTML, 'text/html; charset=utf-8')
             return
 
         if parsed.path == '/api/search':
@@ -571,7 +600,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, {'lastfm_only': True, 'lastfm': lfm, 'errors': errors})
                     return
                 self._send(200, {'lastfm_only': True, 'lastfm': [], 'errors': errors
-                                 + [f'Aucune source ne connaît "{name}"']})
+                                 + [f'Aucune source ne connait "{name}"']})
                 return
 
             exact = [a for a in candidates if a['name'].lower() == name.lower()]
@@ -606,15 +635,22 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    # 0.0.0.0 pour accepter les connexions depuis l'extérieur (requis par Render)
+    if not APP_PASSWORD:
+        print('=' * 60)
+        print('  ATTENTION : APP_PASSWORD non defini.')
+        print('  Le service refusera toutes les requetes.')
+        print('  Configure APP_PASSWORD dans Render > Environment.')
+        print('=' * 60)
     server = HTTPServer(('0.0.0.0', PORT), Handler)
     print('=' * 60)
-    print(f'  Explorateur musical — écoute sur 0.0.0.0:{PORT}')
+    print(f'  Explorateur musical - ecoute sur 0.0.0.0:{PORT}')
+    print(f'  Utilisateur : {APP_USERNAME}')
+    print(f'  Mot de passe : {"configure" if APP_PASSWORD else "MANQUANT"}')
     print('=' * 60)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print('\nArrêt.')
+        print('\nArret.')
         server.shutdown()
 
 
