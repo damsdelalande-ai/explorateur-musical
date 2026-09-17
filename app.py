@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import socket
 
 PORT = int(os.environ.get('PORT', 8765))
-LASTFM_KEY = os.environ.get('LASTFM_KEY', 'b25b959554ed76058ac220b7b2e0a026')
+LASTFM_KEY = os.environ.get('LASTFM_KEY', '')
 MB_BASE = 'https://musicbrainz.org/ws/2'
 LB_BASE = 'https://labs.api.listenbrainz.org'
 LFM_BASE = 'https://ws.audioscrobbler.com/2.0/'
@@ -95,6 +95,8 @@ def lb_similar_artists(mbid):
 
 
 def lastfm_similar(name):
+    if not LASTFM_KEY:
+        return [], 'cle API non configuree'
     params = {
         'method': 'artist.getsimilar',
         'artist': name,
@@ -164,8 +166,6 @@ INDEX_HTML = r'''<!DOCTYPE html>
   input[type="text"]:focus { outline: none; border-color: var(--info); }
   button { cursor: pointer; }
   button:hover { background: var(--surface-2); }
-  .seed-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
-  .seed-chips button { font-size: 12px; padding: 4px 10px; height: auto; }
   #status { font-size: 13px; color: var(--text-2); margin-bottom: 1rem; min-height: 20px; }
   #status.error { color: var(--danger); }
   #status.warn { color: var(--warning); }
@@ -286,15 +286,6 @@ INDEX_HTML = r'''<!DOCTYPE html>
 <div class="search-row">
   <input type="text" id="artist-input" placeholder="ex. Chat Pile, Shellac, Mendelson..." autofocus>
   <button id="search-btn" style="min-width: 110px;">Explorer</button>
-</div>
-
-<div class="seed-chips">
-  <button class="seed-chip" data-artist="Shellac">Shellac</button>
-  <button class="seed-chip" data-artist="Chat Pile">Chat Pile</button>
-  <button class="seed-chip" data-artist="Mendelson">Mendelson</button>
-  <button class="seed-chip" data-artist="Beak>">Beak&gt;</button>
-  <button class="seed-chip" data-artist="Ghost Dubs">Ghost Dubs</button>
-  <button class="seed-chip" data-artist="Programme">Programme</button>
 </div>
 
 <div id="status"></div>
@@ -694,12 +685,6 @@ document.getElementById('search-btn').addEventListener('click', () =>
   search(document.getElementById('artist-input').value));
 document.getElementById('artist-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') search(e.target.value);
-});
-document.querySelectorAll('.seed-chip').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const a = btn.dataset.artist;
-    openArtist(a);
-  });
 });
 renderSavedArtists();
 renderJourney();
