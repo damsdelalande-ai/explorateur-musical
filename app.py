@@ -208,13 +208,22 @@ INDEX_HTML = r'''<!DOCTYPE html>
     padding: 5px 7px; border-left: 0; border-radius: 0 var(--radius) var(--radius) 0;
     color: var(--text-3);
   }
-  .card-actions { display: flex; align-items: center; gap: 6px; }
+  .card-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .listen-link {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 30px; padding: 5px 9px; border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius); background: var(--surface); color: var(--text-2);
+    font-size: 11px; line-height: 1; text-decoration: none;
+  }
+  .listen-link:hover { background: var(--surface-2); color: var(--text); }
+  .listen-link.bandcamp { color: var(--success); }
+  .listen-link.youtube { color: var(--danger); }
   .save-btn.saved { color: var(--purple); background: var(--info-bg); }
   .current-save-btn { white-space: nowrap; height: auto; padding: 5px 9px; font-size: 12px; }
   @media (max-width: 560px) {
     .discovery-card { align-items: flex-start; }
     .card-actions { flex-direction: column; align-items: stretch; }
-    .card-actions button { width: 100%; }
+    .card-actions button, .card-actions .listen-link { width: 100%; }
   }
 
   .section { margin-bottom: 1.5rem; }
@@ -497,6 +506,8 @@ function buildUnifiedRecommendations(result) {
 
 function unifiedRecommendationCard(item) {
   const sourceClass = { MusicBrainz: 'mb', ListenBrainz: 'lb', 'Last.fm': 'lfm' };
+  const bandcampUrl = `https://bandcamp.com/search?q=${encodeURIComponent(item.name)}`;
+  const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.name)}`;
   const chips = item.sources.map(source =>
     `<span class="source-chip ${sourceClass[source] || ''}">${escapeHtml(source)}</span>`
   ).join('');
@@ -508,6 +519,8 @@ function unifiedRecommendationCard(item) {
       <div class="source-chips">${chips}</div>
     </div>
     <div class="card-actions">
+      <a class="listen-link bandcamp" href="${bandcampUrl}" target="_blank" rel="noopener noreferrer">Bandcamp</a>
+      <a class="listen-link youtube" href="${youtubeUrl}" target="_blank" rel="noopener noreferrer">YouTube</a>
       <button class="save-btn ${saved ? 'saved' : ''}" data-artist="${escapeHtml(item.name)}">${saveButtonText(item.name)}</button>
       <button class="explore-btn" data-artist="${escapeHtml(item.name)}">Explorer</button>
     </div>
