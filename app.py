@@ -182,6 +182,41 @@ INDEX_HTML = r'''<!DOCTYPE html>
     background: var(--surface); padding: 2px 8px;
     border-radius: var(--radius); border: 0.5px solid var(--border);
   }
+  .current-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .journey-panel, .saved-panel {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 10px 12px; margin-bottom: 1rem;
+  }
+  .journey-head, .saved-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    margin-bottom: 8px; font-size: 12px; color: var(--text-2);
+  }
+  .back-btn { height: auto; padding: 5px 9px; font-size: 12px; }
+  .back-btn:disabled { opacity: .45; cursor: default; }
+  .trail { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+  .trail-step {
+    height: auto; padding: 4px 8px; font-size: 11px;
+    border-color: var(--border); background: var(--surface-2);
+  }
+  .trail-step.current { color: var(--purple); font-weight: 600; }
+  .trail-arrow { color: var(--text-3); font-size: 11px; }
+  .saved-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .saved-item { display: inline-flex; align-items: center; }
+  .saved-explore, .saved-remove { height: auto; font-size: 11px; }
+  .saved-explore { padding: 5px 8px; border-radius: var(--radius) 0 0 var(--radius); }
+  .saved-remove {
+    padding: 5px 7px; border-left: 0; border-radius: 0 var(--radius) var(--radius) 0;
+    color: var(--text-3);
+  }
+  .card-actions { display: flex; align-items: center; gap: 6px; }
+  .save-btn.saved { color: var(--purple); background: var(--info-bg); }
+  .current-save-btn { white-space: nowrap; height: auto; padding: 5px 9px; font-size: 12px; }
+  @media (max-width: 560px) {
+    .discovery-card { align-items: flex-start; }
+    .card-actions { flex-direction: column; align-items: stretch; }
+    .card-actions button { width: 100%; }
+  }
+
   .section { margin-bottom: 1.5rem; }
   .section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
   .section-head .count { font-size: 12px; color: var(--text-3); }
@@ -265,6 +300,8 @@ INDEX_HTML = r'''<!DOCTYPE html>
 <div id="status"></div>
 <div id="candidates"></div>
 <div id="current-artist"></div>
+<div id="journey"></div>
+<div id="saved-artists"></div>
 <div id="errors"></div>
 <div id="sections"></div>
 
@@ -306,6 +343,114 @@ function artistKey(name) {
     .replace(/[’']/g, '')
     .replace(/[\s._-]+/g, ' ')
     .trim();
+}
+
+const SAVED_ARTISTS_KEY = 'le-larsen-saved-artists-v1';
+let explorationTrail = [];
+
+function loadSavedArtists() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SAVED_ARTISTS_KEY) || '[]');
+    return Array.isArray(value) ? value.filter(Boolean) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+let savedArtists = loadSavedArtists();
+
+function isSavedArtist(name) {
+  const key = artistKey(name);
+  return savedArtists.some(item => artistKey(item) === key);
+}
+
+function saveButtonText(name) {
+  return isSavedArtist(name) ? '♥ Gardé' : '♡ Garder';
+}
+
+function persistSavedArtists() {
+  try {
+    localStorage.setItem(SAVED_ARTISTS_KEY, JSON.stringify(savedArtists));
+  } catch (e) {
+    setStatus('Impossible d’enregistrer les favoris dans ce navigateur.', 'warn');
+  }
+}
+
+function toggleSavedArtist(name) {
+  const key = artistKey(name);
+  const index = savedArtists.findIndex(item => artistKey(item) === key);
+  if (index >= 0) savedArtists.splice(index, 1);
+  else savedArtists.unshift(name);
+  persistSavedArtists();
+  renderSavedArtists();
+  refreshSaveButtons();
+}
+
+function refreshSaveButtons() {
+  document.querySelectorAll('.save-btn').forEach(btn => {
+    const saved = isSavedArtist(btn.dataset.artist);
+    btn.textContent = saved ? '♥ Gardé' : '♡ Garder';
+    btn.classList.toggle('saved', saved);
+  });
+}
+
+function rememberExploration(name) {
+  if (!name) return;
+  const last = explorationTrail[explorationTrail.length - 1];
+  if (!last || artistKey(last) !== artistKey(name)) explorationTrail.push(name);
+  if (explorationTrail.length > 10) explorationTrail.shift();
+  renderJourney();
+}
+
+function openArtist(name) {
+  document.getElementById('artist-input').value = name;
+  search(name);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderJourney() {
+  const el = document.getElementById('journey');
+  if (!explorationTrail.length) { el.innerHTML = ''; return; }
+  const steps = explorationTrail.map((name, index) =>
+    `${index ? '<span class="trail-arrow">›</span>' : ''}<button class="trail-step ${index === explorationTrail.length - 1 ? 'current' : ''}" data-trail-index="${index}">${escapeHtml(name)}</button>`
+  ).join('');
+  el.innerHTML = `<div class="journey-panel">
+    <div class="journey-head">
+      <span>Fil d’exploration</span>
+      <button class="back-btn" ${explorationTrail.length < 2 ? 'disabled' : ''}>← Retour</button>
+    </div>
+    <div class="trail">${steps}</div>
+  </div>`;
+  const back = el.querySelector('.back-btn');
+  if (back && !back.disabled) back.addEventListener('click', () => {
+    explorationTrail.pop();
+    openArtist(explorationTrail[explorationTrail.length - 1]);
+  });
+  el.querySelectorAll('.trail-step').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const index = Number(btn.dataset.trailIndex);
+      const name = explorationTrail[index];
+      explorationTrail = explorationTrail.slice(0, index + 1);
+      openArtist(name);
+    });
+  });
+}
+
+function renderSavedArtists() {
+  const el = document.getElementById('saved-artists');
+  if (!savedArtists.length) { el.innerHTML = ''; return; }
+  const items = savedArtists.map(name => `<span class="saved-item">
+    <button class="saved-explore" data-saved-artist="${escapeHtml(name)}">${escapeHtml(name)}</button>
+    <button class="saved-remove" data-remove-artist="${escapeHtml(name)}" aria-label="Retirer ${escapeHtml(name)}">×</button>
+  </span>`).join('');
+  el.innerHTML = `<div class="saved-panel">
+    <div class="saved-head"><span>À écouter plus tard</span><span>${savedArtists.length}</span></div>
+    <div class="saved-list">${items}</div>
+  </div>`;
+  el.querySelectorAll('.saved-explore').forEach(btn =>
+    btn.addEventListener('click', () => openArtist(btn.dataset.savedArtist)));
+  el.querySelectorAll('.saved-remove').forEach(btn =>
+    btn.addEventListener('click', () => toggleSavedArtist(btn.dataset.removeArtist)));
 }
 
 function buildUnifiedRecommendations(result) {
@@ -362,13 +507,17 @@ function unifiedRecommendationCard(item) {
   const chips = item.sources.map(source =>
     `<span class="source-chip ${sourceClass[source] || ''}">${escapeHtml(source)}</span>`
   ).join('');
+  const saved = isSavedArtist(item.name);
   return `<div class="result-card discovery-card">
     <div class="info">
       <div class="name">${escapeHtml(item.name)}</div>
       <div class="reason">${escapeHtml(item.reason)}</div>
       <div class="source-chips">${chips}</div>
     </div>
-    <button class="explore-btn" data-artist="${escapeHtml(item.name)}">Explorer</button>
+    <div class="card-actions">
+      <button class="save-btn ${saved ? 'saved' : ''}" data-artist="${escapeHtml(item.name)}">${saveButtonText(item.name)}</button>
+      <button class="explore-btn" data-artist="${escapeHtml(item.name)}">Explorer</button>
+    </div>
   </div>`;
 }
 function sectionWrap(titleHtml, bodyHtml, count) {
@@ -455,10 +604,16 @@ function renderFull(result) {
   const a = result.artist;
   const ls = a['life-span'] || {};
   const tags = (result.tags || []).slice(0, 6);
+  rememberExploration(a.name);
   document.getElementById('current-artist').innerHTML = `
     <div class="current-artist">
-      <div class="label">Point de depart - MusicBrainz</div>
-      <div class="name">${escapeHtml(a.name)}</div>
+      <div class="current-heading">
+        <div>
+          <div class="label">Point de depart - MusicBrainz</div>
+          <div class="name">${escapeHtml(a.name)}</div>
+        </div>
+        <button class="save-btn current-save-btn ${isSavedArtist(a.name) ? 'saved' : ''}" data-artist="${escapeHtml(a.name)}">${saveButtonText(a.name)}</button>
+      </div>
       <div class="meta">
         ${a.disambiguation ? escapeHtml(a.disambiguation) + ' - ' : ''}${a.country ? a.country + ' - ' : ''}${ls.begin || ''}${ls.end ? '-' + ls.end : (ls.begin ? '-' : '')}
       </div>
@@ -494,10 +649,16 @@ function renderFull(result) {
 }
 
 function renderLastfmOnly(name, lfm) {
+  rememberExploration(name);
   document.getElementById('current-artist').innerHTML = `
     <div class="current-artist">
-      <div class="label">Point de depart - une seule source disponible</div>
-      <div class="name">${escapeHtml(name)}</div>
+      <div class="current-heading">
+        <div>
+          <div class="label">Point de depart - une seule source disponible</div>
+          <div class="name">${escapeHtml(name)}</div>
+        </div>
+        <button class="save-btn current-save-btn ${isSavedArtist(name) ? 'saved' : ''}" data-artist="${escapeHtml(name)}">${saveButtonText(name)}</button>
+      </div>
     </div>`;
   const recommendations = buildUnifiedRecommendations({ lastfm: lfm });
   const items = recommendations.map(unifiedRecommendationCard);
@@ -509,12 +670,13 @@ function renderLastfmOnly(name, lfm) {
 }
 
 function wireUpButtons() {
+  document.querySelectorAll('.save-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleSavedArtist(btn.dataset.artist));
+  });
   document.querySelectorAll('.explore-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const a = btn.dataset.artist;
-      document.getElementById('artist-input').value = a;
-      search(a);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      openArtist(a);
     });
   });
   document.querySelectorAll('.label-btn').forEach(btn => {
@@ -533,10 +695,11 @@ document.getElementById('artist-input').addEventListener('keydown', (e) => {
 document.querySelectorAll('.seed-chip').forEach(btn => {
   btn.addEventListener('click', () => {
     const a = btn.dataset.artist;
-    document.getElementById('artist-input').value = a;
-    search(a);
+    openArtist(a);
   });
 });
+renderSavedArtists();
+renderJourney();
 </script>
 </body>
 </html>
