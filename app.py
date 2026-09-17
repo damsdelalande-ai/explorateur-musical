@@ -424,6 +424,7 @@ function renderJourney() {
   const back = el.querySelector('.back-btn');
   if (back && !back.disabled) back.addEventListener('click', () => {
     explorationTrail.pop();
+    renderJourney();
     openArtist(explorationTrail[explorationTrail.length - 1]);
   });
   el.querySelectorAll('.trail-step').forEach(btn => {
@@ -431,6 +432,7 @@ function renderJourney() {
       const index = Number(btn.dataset.trailIndex);
       const name = explorationTrail[index];
       explorationTrail = explorationTrail.slice(0, index + 1);
+      renderJourney();
       openArtist(name);
     });
   });
@@ -641,6 +643,7 @@ function renderFull(result) {
   }
   if (sections.length === 0) {
     setStatus(`Trouve "${a.name}" mais aucune relation/similarite.`, 'warn');
+    wireUpButtons();
     return;
   }
   setStatus(`${recommendations.length} decouvertes classees`);
