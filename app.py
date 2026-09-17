@@ -196,6 +196,24 @@ INDEX_HTML = r'''<!DOCTYPE html>
   .result-card .name { font-size: 14px; font-weight: 500; }
   .result-card .meta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
   .result-card button { font-size: 12px; padding: 5px 10px; height: auto; }
+  .discovery-card {
+    border-left: 3px solid var(--purple);
+    padding: 12px 14px;
+  }
+  .discovery-card .reason {
+    font-size: 12px; color: var(--text-2); margin-top: 3px;
+  }
+  .source-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .source-chip {
+    font-size: 10px; line-height: 1; padding: 4px 6px;
+    border-radius: 999px; background: var(--surface-2); color: var(--text-2);
+  }
+  .source-chip.mb { color: var(--purple); }
+  .source-chip.lb { color: var(--success); }
+  .source-chip.lfm { color: var(--warning); }
+  .discovery-card .explore-btn {
+    white-space: nowrap; font-weight: 600; color: var(--info);
+  }
   .source-mb { border-left: 3px solid var(--purple); }
   .source-lb { border-left: 3px solid var(--success); }
   .source-lfm { border-left: 3px solid var(--warning); }
@@ -278,6 +296,78 @@ function artistCard(name, meta, sourceClass) {
       ${meta ? `<div class="meta">${escapeHtml(meta)}</div>` : ''}
     </div>
     <button class="explore-btn" data-artist="${escapeHtml(name)}">&rarr;</button>
+  </div>`;
+}
+function artistKey(name) {
+  return String(name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function buildUnifiedRecommendations(result) {
+  const found = new Map();
+
+  function add(name, source, reason, score) {
+    if (!name) return;
+    const key = artistKey(name);
+    if (!key) return;
+    if (!found.has(key)) {
+      found.set(key, { name, sources: new Set(), reasons: [], score: 0 });
+    }
+    const item = found.get(key);
+    item.sources.add(source);
+    if (reason && !item.reasons.includes(reason)) item.reasons.push(reason);
+    item.score += score || 0;
+  }
+
+  (result.mb_relations || []).forEach(r => {
+    const relation = r.relation_label || 'lien documente';
+    add(r.name, 'MusicBrainz', `Lien documente : ${relation}`, 4);
+  });
+
+  (result.listenbrainz || []).forEach(a => {
+    const name = a.name || a.artist_name || a.comment;
+    const similarity = Number(a.score || a.similarity || 0);
+    add(name, 'ListenBrainz', 'Ecoute par des publics proches', 2 + similarity);
+  });
+
+  (result.lastfm || []).forEach(a => {
+    const match = Number.parseFloat(a.match) || 0;
+    add(a.name, 'Last.fm', 'Souvent associe dans les ecoutes', 2 + match);
+  });
+
+  return Array.from(found.values())
+    .map(item => {
+      const sources = Array.from(item.sources);
+      const reason = sources.length > 1
+        ? `Repere par ${sources.length} sources independantes - ${item.reasons[0]}`
+        : item.reasons[0];
+      return {
+        name: item.name,
+        sources,
+        reason,
+        rank: item.score + (sources.length - 1) * 6,
+      };
+    })
+    .sort((a, b) => b.rank - a.rank || a.name.localeCompare(b.name))
+    .slice(0, 15);
+}
+
+function unifiedRecommendationCard(item) {
+  const sourceClass = { MusicBrainz: 'mb', ListenBrainz: 'lb', 'Last.fm': 'lfm' };
+  const chips = item.sources.map(source =>
+    `<span class="source-chip ${sourceClass[source] || ''}">${escapeHtml(source)}</span>`
+  ).join('');
+  return `<div class="result-card discovery-card">
+    <div class="info">
+      <div class="name">${escapeHtml(item.name)}</div>
+      <div class="reason">${escapeHtml(item.reason)}</div>
+      <div class="source-chips">${chips}</div>
+    </div>
+    <button class="explore-btn" data-artist="${escapeHtml(item.name)}">Explorer</button>
   </div>`;
 }
 function sectionWrap(titleHtml, bodyHtml, count) {
@@ -377,54 +467,27 @@ function renderFull(result) {
     </div>`;
 
   const sections = [];
+  const recommendations = buildUnifiedRecommendations(result);
 
-  if (result.mb_relations && result.mb_relations.length > 0) {
-    const items = result.mb_relations.slice(0, 15).map(r =>
-      artistCard(r.name, r.relation_label, 'source-mb'));
+  if (recommendations.length > 0) {
+    const items = recommendations.map(unifiedRecommendationCard);
     sections.push(sectionWrap(
-      `Liens MusicBrainz <span class="source-note">- faits documentes</span>`,
-      `<div class="results">${items.join('')}</div>`, result.mb_relations.length));
+      `A decouvrir ensuite <span class="source-note">- recommandations croisees et classees</span>`,
+      `<div class="results">${items.join('')}</div>`, recommendations.length));
   }
 
   if (result.mb_labels && result.mb_labels.length > 0) {
     const buttons = result.mb_labels.map(l =>
       `<button class="label-btn" data-label="${escapeHtml(l)}">${escapeHtml(l)}</button>`).join('');
     sections.push(sectionWrap(
-      `Labels associes <span class="source-note">- porte d'entree vers la scene</span>`,
+      `Labels associes <span class="source-note">- explorer la scene</span>`,
       `<div class="label-list">${buttons}</div>`, result.mb_labels.length));
   }
-
-  if (result.listenbrainz && result.listenbrainz.length > 0) {
-    const items = result.listenbrainz.slice(0, 15).map(a => {
-      const score = a.score || a.similarity || 0;
-      const scoreStr = score ? `score ${Math.round(score * 100) / 100}` : '';
-      const n = a.name || a.artist_name || a.comment;
-      if (!n) return '';
-      return artistCard(n, scoreStr, 'source-lb');
-    }).filter(Boolean);
-    if (items.length) {
-      sections.push(sectionWrap(
-        `ListenBrainz <span class="source-note">- filtrage collaboratif</span>`,
-        `<div class="results">${items.join('')}</div>`, items.length));
-    }
-  }
-
-  if (result.lastfm && result.lastfm.length > 0) {
-    const items = result.lastfm.slice(0, 12).map(a => {
-      const match = parseFloat(a.match) || 0;
-      const meta = match ? `match ${Math.round(match * 100)}%` : '';
-      return artistCard(a.name, meta, 'source-lfm');
-    });
-    sections.push(sectionWrap(
-      `Last.fm <span class="source-note">- coocurrence d'ecoute</span>`,
-      `<div class="results">${items.join('')}</div>`, items.length));
-  }
-
   if (sections.length === 0) {
     setStatus(`Trouve "${a.name}" mais aucune relation/similarite.`, 'warn');
     return;
   }
-  setStatus(`${sections.length} axe(s) de decouverte`);
+  setStatus(`${recommendations.length} decouvertes classees`);
   document.getElementById('sections').innerHTML = sections.join('');
   wireUpButtons();
 }
@@ -432,18 +495,15 @@ function renderFull(result) {
 function renderLastfmOnly(name, lfm) {
   document.getElementById('current-artist').innerHTML = `
     <div class="current-artist">
-      <div class="label">Last.fm uniquement</div>
+      <div class="label">Point de depart - une seule source disponible</div>
       <div class="name">${escapeHtml(name)}</div>
     </div>`;
-  const items = lfm.slice(0, 12).map(a => {
-    const match = parseFloat(a.match) || 0;
-    const meta = match ? `match ${Math.round(match * 100)}%` : '';
-    return artistCard(a.name, meta, 'source-lfm');
-  });
-  document.getElementById('sections').innerHTML = sectionWrap(
-    `Last.fm <span class="source-note">- seule source</span>`,
-    `<div class="results">${items.join('')}</div>`, items.length);
-  setStatus(`${items.length} resultats`);
+  const recommendations = buildUnifiedRecommendations({ lastfm: lfm });
+  const items = recommendations.map(unifiedRecommendationCard);
+  document.getElementById('sections').innerHTML = items.length ? sectionWrap(
+    `A decouvrir ensuite <span class="source-note">- suggestions Last.fm</span>`,
+    `<div class="results">${items.join('')}</div>`, items.length) : '';
+  setStatus(items.length ? `${items.length} decouvertes classees` : 'Aucune recommandation trouvee', items.length ? '' : 'warn');
   wireUpButtons();
 }
 
