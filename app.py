@@ -58,7 +58,7 @@ def http_get_json(url, headers=None):
     except urllib.error.HTTPError as e:
         return None, f'HTTP {e.code}'
     except urllib.error.URLError as e:
-        return None, f'Reseau : {e.reason}'
+        return None, f'Réseau : {e.reason}'
     except json.JSONDecodeError as e:
         return None, f'JSON invalide : {e}'
     except socket.timeout:
@@ -96,7 +96,7 @@ def lb_similar_artists(mbid):
 
 def lastfm_similar(name):
     if not LASTFM_KEY:
-        return [], 'cle API non configuree'
+        return [], 'clé API non configurée'
     params = {
         'method': 'artist.getsimilar',
         'artist': name,
@@ -351,7 +351,7 @@ INDEX_HTML = r'''<!DOCTYPE html>
 <header class="masthead"><div class="wordmark">le larsen<span> 〰</span></div><button id="saved-toggle" aria-haspopup="dialog">♡ À écouter · <span id="saved-count">0</span></button></header>
 <div class="hero"><div class="eyebrow">Explorations musicales indépendantes</div>
 <h1>Un groupe en tête.<br><em>Des pistes inattendues.</em></h1>
-<p class="subtitle">Suivez les affinités, les collaborations et les chemins de traverse. La prochaine découverte commence ici.</p></div>
+<p class="subtitle">Suis les affinités, les collaborations et les chemins de traverse. La prochaine découverte commence ici.</p></div>
 
 <div class="search-row">
   <input type="text" id="artist-input" aria-label="Artiste à explorer" placeholder="Pars d’un artiste que tu aimes" autofocus>
@@ -362,7 +362,7 @@ INDEX_HTML = r'''<!DOCTYPE html>
 <div id="candidates"></div>
 <div id="journey"></div>
 <div id="current-artist"></div>
-<dialog id="saved-dialog" aria-labelledby="saved-title"><div class="drawer-head"><h2 id="saved-title">À écouter plus tard</h2><button id="saved-close" aria-label="Fermer les favoris">✕</button></div><p class="drawer-note">Votre collection, enregistrée dans ce navigateur uniquement.</p><div id="saved-artists"></div></dialog>
+<dialog id="saved-dialog" aria-labelledby="saved-title"><div class="drawer-head"><h2 id="saved-title">À écouter plus tard</h2><button id="saved-close" aria-label="Fermer les favoris">✕</button></div><p class="drawer-note">Ta collection, enregistrée dans ce navigateur uniquement.</p><div id="saved-artists"></div></dialog>
 <div id="errors"></div>
 <div id="sections"></div>
 
@@ -506,7 +506,7 @@ function renderJourney() {
 function renderSavedArtists() {
   const el = document.getElementById('saved-artists');
   document.getElementById('saved-count').textContent = savedArtists.length;
-  if (!savedArtists.length) { el.innerHTML = '<p>Aucune découverte gardée pour le moment. Touchez le cœur d’un artiste pour le retrouver ici.</p>'; return; }
+  if (!savedArtists.length) { el.innerHTML = '<p>Aucune découverte gardée pour le moment. Touche le cœur d’un artiste pour le retrouver ici.</p>'; return; }
   const items = savedArtists.map(name => `<span class="saved-item">
     <button class="saved-explore" data-saved-artist="${escapeHtml(name)}">${escapeHtml(name)}</button>
     <button class="saved-remove" data-remove-artist="${escapeHtml(name)}" aria-label="Retirer ${escapeHtml(name)}">×</button>
@@ -538,26 +538,26 @@ function buildUnifiedRecommendations(result) {
   }
 
   (result.mb_relations || []).forEach(r => {
-    const relation = r.relation_label || 'lien documente';
-    add(r.name, 'MusicBrainz', `Lien documente : ${relation}`, 4);
+    const relation = r.relation_label || 'lien documenté';
+    add(r.name, 'MusicBrainz', `Lien documenté : ${relation}`, 4);
   });
 
   (result.listenbrainz || []).forEach(a => {
     const name = a.name || a.artist_name || a.comment;
     const similarity = Number(a.score || a.similarity || 0);
-    add(name, 'ListenBrainz', 'Ecoute par des publics proches', 2 + similarity);
+    add(name, 'ListenBrainz', 'Écouté par des publics proches', 2 + similarity);
   });
 
   (result.lastfm || []).forEach(a => {
     const match = Number.parseFloat(a.match) || 0;
-    add(a.name, 'Last.fm', 'Souvent associe dans les ecoutes', 2 + match);
+    add(a.name, 'Last.fm', 'Souvent associé dans les écoutes', 2 + match);
   });
 
   return Array.from(found.values())
     .map(item => {
       const sources = Array.from(item.sources);
       const reason = sources.length > 1
-        ? `Repere par ${sources.length} sources independantes - ${item.reasons[0]}`
+        ? `Repéré par ${sources.length} sources indépendantes - ${item.reasons[0]}`
         : item.reasons[0];
       return {
         name: item.name,
@@ -595,7 +595,7 @@ function sectionWrap(titleHtml, bodyHtml, count) {
   return `<div class="section">
     <div class="section-head">
       <h3>${titleHtml}</h3>
-      <span class="count">${count} resultats</span>
+      <span class="count">${count} résultats</span>
     </div>${bodyHtml}
   </div>`;
 }
@@ -608,7 +608,7 @@ async function fetchDiscovery(url) {
   sections.setAttribute('aria-busy', 'true');
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error('Service indisponible. Réessayez dans un instant.');
+    if (!response.ok) throw new Error('Service indisponible. Réessaie dans un instant.');
     const result = await response.json();
     return version === requestVersion ? result : null;
   } finally {
@@ -671,7 +671,7 @@ async function search(name) {
 }
 
 async function exploreByMbid(mbid) {
-  setStatus('Recuperation...');
+  setStatus('Récupération…');
   document.getElementById('sections').innerHTML = '';
   document.getElementById('candidates').innerHTML = '';
   document.getElementById('errors').innerHTML = '';
@@ -692,7 +692,7 @@ async function exploreByMbid(mbid) {
 
 function renderFull(result) {
   const a = result.artist;
-  if (!a) { setStatus('Cet artiste est momentanément indisponible. Réessayez.', 'warn'); return; }
+  if (!a) { setStatus('Cet artiste est momentanément indisponible. Réessaie.', 'warn'); return; }
   const ls = a['life-span'] || {};
   const tags = (result.tags || []).slice(0, 6);
   rememberExploration(a.name);
@@ -700,7 +700,7 @@ function renderFull(result) {
     <div class="current-artist">
       <div class="current-heading">
         <div>
-          <div class="label">Point de depart - MusicBrainz</div>
+          <div class="label">Point de départ - MusicBrainz</div>
           <div class="name">${escapeHtml(a.name)}</div>
         </div>
         <button class="save-btn current-save-btn ${isSavedArtist(a.name) ? 'saved' : ''}" data-artist="${escapeHtml(a.name)}">${saveButtonText(a.name)}</button>
@@ -719,7 +719,7 @@ function renderFull(result) {
   if (recommendations.length > 0) {
     const items = recommendations.map(unifiedRecommendationCard);
     sections.push(sectionWrap(
-      `A decouvrir ensuite <span class="source-note">- recommandations croisees et classees</span>`,
+      `À découvrir ensuite <span class="source-note">- recommandations croisées et classées</span>`,
       `<div class="results">${items.join('')}</div>`, recommendations.length));
   }
 
@@ -727,15 +727,15 @@ function renderFull(result) {
     const buttons = result.mb_labels.map(l =>
       `<button class="label-btn" data-label="${escapeHtml(l)}">${escapeHtml(l)}</button>`).join('');
     sections.push(sectionWrap(
-      `Labels associes <span class="source-note">- explorer la scene</span>`,
+      `Labels associés <span class="source-note">- explorer la scène</span>`,
       `<div class="label-list">${buttons}</div>`, result.mb_labels.length));
   }
   if (sections.length === 0) {
-    setStatus(`Trouve "${a.name}" mais aucune relation/similarite.`, 'warn');
+    setStatus(`Artiste "${a.name}" trouvé, mais aucun lien ni artiste similaire.`, 'warn');
     wireUpButtons();
     return;
   }
-  setStatus(`${recommendations.length} decouvertes classees`);
+  setStatus(`${recommendations.length} découvertes classées`);
   document.getElementById('sections').innerHTML = sections.join('');
   wireUpButtons();
 }
@@ -746,7 +746,7 @@ function renderLastfmOnly(name, lfm) {
     <div class="current-artist">
       <div class="current-heading">
         <div>
-          <div class="label">Point de depart - une seule source disponible</div>
+          <div class="label">Point de départ - une seule source disponible</div>
           <div class="name">${escapeHtml(name)}</div>
         </div>
         <button class="save-btn current-save-btn ${isSavedArtist(name) ? 'saved' : ''}" data-artist="${escapeHtml(name)}">${saveButtonText(name)}</button>
@@ -755,9 +755,9 @@ function renderLastfmOnly(name, lfm) {
   const recommendations = buildUnifiedRecommendations({ lastfm: lfm });
   const items = recommendations.map(unifiedRecommendationCard);
   document.getElementById('sections').innerHTML = items.length ? sectionWrap(
-    `A decouvrir ensuite <span class="source-note">- suggestions Last.fm</span>`,
+    `À découvrir ensuite <span class="source-note">- suggestions Last.fm</span>`,
     `<div class="results">${items.join('')}</div>`, items.length) : '';
-  setStatus(items.length ? `${items.length} decouvertes classees` : 'Aucune recommandation trouvee', items.length ? '' : 'warn');
+  setStatus(items.length ? `${items.length} découvertes classées` : 'Aucune recommandation trouvée', items.length ? '' : 'warn');
   wireUpButtons();
 }
 
@@ -835,7 +835,7 @@ def build_explore_result(mb_artist):
         if rel.get('target-type') == 'artist' and rel.get('artist'):
             relations.append({
                 'name': rel['artist']['name'],
-                'relation_label': type_labels.get(rel.get('type', ''), rel.get('type', 'liee'))
+                'relation_label': type_labels.get(rel.get('type', ''), rel.get('type', 'liée'))
             })
         elif rel.get('target-type') == 'label' and rel.get('label'):
             ln = rel['label']['name']
@@ -913,7 +913,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, {'lastfm_only': True, 'lastfm': lfm, 'errors': errors})
                     return
                 self._send(200, {'lastfm_only': True, 'lastfm': [], 'errors': errors
-                                 + [f'Aucune source ne connait "{name}"']})
+                                 + [f'Aucune source ne connaît "{name}"']})
                 return
 
             exact = [a for a in candidates if a['name'].lower() == name.lower()]
