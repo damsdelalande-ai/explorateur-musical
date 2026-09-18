@@ -284,24 +284,85 @@ INDEX_HTML = r'''<!DOCTYPE html>
     font-size: 12px; color: var(--text-3); line-height: 1.6;
   }
   .sources-footer a { color: var(--info); }
+  /* Le Larsen — independent record shop identity */
+  :root { color-scheme:light; --bg:#f6f2e9; --surface:#fffdf7; --surface-2:#eee8db; --text:#24211e; --text-2:#635d55; --text-3:#756e65; --border:#ded6c7; --border-strong:#bdb3a3; --info:#6542d5; --purple:#6542d5; --info-bg:#eee7ff; --success:#246855; --danger:#a63e38; --warning:#825117; --warning-bg:#fff0d2; --radius:14px; }
+  body { padding:0; line-height:1.5; }
+  .container { max-width:960px; padding:0 24px 40px; }
+  .masthead { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:24px 0; border-bottom:1px solid var(--border); }
+  .wordmark { font-size:32px; font-weight:900; letter-spacing:-2px; }
+  .wordmark span { color:var(--purple); }
+  button, a { -webkit-tap-highlight-color:transparent; }
+  button { height:auto; min-height:44px; }
+  :focus-visible { outline:3px solid var(--purple); outline-offset:3px; }
+  .hero { padding:64px 0 26px; }
+  .eyebrow { color:var(--purple); text-transform:uppercase; letter-spacing:2px; font-size:11px; font-weight:750; }
+  h1 { font-family:Georgia,serif; font-size:clamp(38px,6vw,66px); line-height:1.06; letter-spacing:-2px; max-width:720px; margin:18px 0; }
+  h1 em { color:var(--purple); font-weight:400; }
+  .subtitle { font-size:16px; max-width:560px; }
+  body.has-results .hero { padding-top:28px; }
+  body.has-results h1 { font-size:32px; }
+  body.has-results .hero .subtitle, body.has-results .eyebrow { display:none; }
+  .search-row { padding:8px; background:var(--surface); border:1px solid var(--border-strong); border-radius:18px; box-shadow:0 8px 24px #382f1910; margin-bottom:20px; }
+  #artist-input { min-width:0; height:54px; border:0; background:transparent; font-size:17px; }
+  #search-btn { background:#dedf69; color:#24211e; border:0; font-weight:750; padding:12px 24px; }
+  #status { font-size:12px; }
+  .current-artist { padding:24px; background:var(--purple); color:#fff; border-radius:20px; }
+  .current-artist .name { font-family:Georgia,serif; font-size:34px; overflow-wrap:anywhere; }
+  .current-artist .label, .current-artist .meta { color:#ede5ff; }
+  .current-artist .tag { background:#ffffff18; color:#fff; border-color:#ffffff35; }
+  .current-save-btn { background:var(--surface); }
+  .journey-panel { background:transparent; border:0; padding:0; margin:20px 0; }
+  .trail-step { min-height:38px; }
+  .section-head { gap:12px; padding:14px 0; }
+  .section-head h3 { font-size:22px; font-weight:750; letter-spacing:-.5px; }
+  .section-head .source-note { display:block; font-size:12px; letter-spacing:0; margin-top:4px; }
+  .section-head .count { white-space:nowrap; }
+  .results { gap:12px; }
+  .discovery-card { padding:22px; border:1px solid var(--border); border-radius:18px; gap:20px; }
+  .result-card .name { font-size:22px; font-weight:750; letter-spacing:-.5px; overflow-wrap:anywhere; }
+  .discovery-card .reason { margin:6px 0 10px; font-size:14px; }
+  .card-actions { flex-wrap:nowrap; flex-shrink:0; }
+  .discovery-card .explore-btn { background:var(--purple); color:#fff; border:0; padding:10px 16px; min-height:44px; }
+  .listen-links { display:flex; flex-wrap:wrap; gap:14px; }
+  .listen-link { border:0; background:transparent; padding:0; min-height:36px; font-size:12px; text-decoration:underline; text-underline-offset:4px; }
+  .source-details { margin-top:8px; color:var(--text-2); font-size:11px; }
+  summary { cursor:pointer; }
+  .save-btn { min-width:44px; min-height:44px; }
+  dialog { color:var(--text); background:var(--bg); border:1px solid var(--border); border-radius:22px; width:min(540px,92vw); max-height:80vh; padding:24px; }
+  dialog::backdrop { background:#21193388; }
+  .drawer-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .drawer-head h2 { font-family:Georgia,serif; font-size:28px; }
+  .saved-panel { border:0; padding:0; }
+  .saved-head { display:none; }
+  .saved-list { flex-direction:column; }
+  .saved-item { display:flex; width:100%; }
+  .saved-explore { flex:1; text-align:left; font-size:15px; padding:12px; }
+  .saved-remove { min-width:44px; }
+  .drawer-note { font-size:12px; color:var(--text-2); }
+  .skeleton { height:100px; border-radius:18px; background:linear-gradient(100deg,var(--surface-2),var(--surface),var(--surface-2)); background-size:200% 100%; animation:loading 1.8s linear infinite; margin-bottom:12px; }
+  @keyframes loading { to { background-position:-200% 0; } }
+  @media(prefers-reduced-motion:reduce) { .skeleton { animation:none; } }
+  @media(max-width:560px) { .container { padding:0 16px 28px; } .masthead { padding:18px 0; } .wordmark { font-size:28px; } .hero { padding-top:36px; } .search-row { gap:2px; } #artist-input { font-size:14px; padding:8px; } #search-btn { padding:10px 12px; min-width:90px!important; } .discovery-card { padding:18px; flex-wrap:wrap; } .discovery-card .info { flex-basis:100%; } .card-actions { flex-direction:row; width:100%; justify-content:flex-end; } .card-actions button { width:auto; } .current-artist { padding:20px; } .current-artist .name { font-size:28px; } }
 </style>
 </head>
 <body>
 <div class="container">
 
-<h1>Explorateur musical underground</h1>
-<p class="subtitle">Le Larsen - triangulation MusicBrainz + ListenBrainz + Last.fm</p>
+<header class="masthead"><div class="wordmark">le larsen<span> 〰</span></div><button id="saved-toggle" aria-haspopup="dialog">♡ À écouter · <span id="saved-count">0</span></button></header>
+<div class="hero"><div class="eyebrow">Explorations musicales indépendantes</div>
+<h1>Un groupe en tête.<br><em>Des pistes inattendues.</em></h1>
+<p class="subtitle">Suivez les affinités, les collaborations et les chemins de traverse. La prochaine découverte commence ici.</p></div>
 
 <div class="search-row">
-  <input type="text" id="artist-input" placeholder="ex. Chat Pile, Shellac, Mendelson..." autofocus>
+  <input type="text" id="artist-input" aria-label="Artiste à explorer" placeholder="Pars d’un artiste que tu aimes" autofocus>
   <button id="search-btn" style="min-width: 110px;">Explorer</button>
 </div>
 
-<div id="status"></div>
+<div id="status" role="status" aria-live="polite"></div>
 <div id="candidates"></div>
-<div id="current-artist"></div>
 <div id="journey"></div>
-<div id="saved-artists"></div>
+<div id="current-artist"></div>
+<dialog id="saved-dialog" aria-labelledby="saved-title"><div class="drawer-head"><h2 id="saved-title">À écouter plus tard</h2><button id="saved-close" aria-label="Fermer les favoris">✕</button></div><p class="drawer-note">Votre collection, enregistrée dans ce navigateur uniquement.</p><div id="saved-artists"></div></dialog>
 <div id="errors"></div>
 <div id="sections"></div>
 
@@ -319,7 +380,7 @@ function escapeHtml(s) {
   if (s == null) return '';
   const d = document.createElement('div');
   d.textContent = String(s);
-  return d.innerHTML;
+  return d.innerHTML.replace(/"/g, '&quot;');
 }
 function setStatus(msg, kind) {
   const el = document.getElementById('status');
@@ -351,7 +412,7 @@ let explorationTrail = [];
 function loadSavedArtists() {
   try {
     const value = JSON.parse(localStorage.getItem(SAVED_ARTISTS_KEY) || '[]');
-    return Array.isArray(value) ? value.filter(Boolean) : [];
+    return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) : [];
   } catch (e) {
     return [];
   }
@@ -365,7 +426,7 @@ function isSavedArtist(name) {
 }
 
 function saveButtonText(name) {
-  return isSavedArtist(name) ? '♥ Gardé' : '♡ Garder';
+  return isSavedArtist(name) ? '♥' : '♡';
 }
 
 function persistSavedArtists() {
@@ -389,13 +450,16 @@ function toggleSavedArtist(name) {
 function refreshSaveButtons() {
   document.querySelectorAll('.save-btn').forEach(btn => {
     const saved = isSavedArtist(btn.dataset.artist);
-    btn.textContent = saved ? '♥ Gardé' : '♡ Garder';
+    btn.textContent = saved ? '♥' : '♡';
+    btn.setAttribute('aria-pressed', String(saved));
+    btn.setAttribute('aria-label', (saved ? 'Retirer des favoris : ' : 'Garder pour plus tard : ') + btn.dataset.artist);
     btn.classList.toggle('saved', saved);
   });
 }
 
 function rememberExploration(name) {
   if (!name) return;
+  document.body.classList.add('has-results');
   const last = explorationTrail[explorationTrail.length - 1];
   if (!last || artistKey(last) !== artistKey(name)) explorationTrail.push(name);
   if (explorationTrail.length > 10) explorationTrail.shift();
@@ -403,6 +467,7 @@ function rememberExploration(name) {
 }
 
 function openArtist(name) {
+  document.getElementById('saved-dialog').close();
   document.getElementById('artist-input').value = name;
   search(name);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -440,7 +505,8 @@ function renderJourney() {
 
 function renderSavedArtists() {
   const el = document.getElementById('saved-artists');
-  if (!savedArtists.length) { el.innerHTML = ''; return; }
+  document.getElementById('saved-count').textContent = savedArtists.length;
+  if (!savedArtists.length) { el.innerHTML = '<p>Aucune découverte gardée pour le moment. Touchez le cœur d’un artiste pour le retrouver ici.</p>'; return; }
   const items = savedArtists.map(name => `<span class="saved-item">
     <button class="saved-explore" data-saved-artist="${escapeHtml(name)}">${escapeHtml(name)}</button>
     <button class="saved-remove" data-remove-artist="${escapeHtml(name)}" aria-label="Retirer ${escapeHtml(name)}">×</button>
@@ -516,13 +582,12 @@ function unifiedRecommendationCard(item) {
     <div class="info">
       <div class="name">${escapeHtml(item.name)}</div>
       <div class="reason">${escapeHtml(item.reason)}</div>
-      <div class="source-chips">${chips}</div>
+      <div class="listen-links"><a class="listen-link bandcamp" href="${bandcampUrl}" target="_blank" rel="noopener noreferrer">Bandcamp ↗</a><a class="listen-link youtube" href="${youtubeUrl}" target="_blank" rel="noopener noreferrer">YouTube ↗</a></div>
+      <details class="source-details"><summary>Pourquoi cette suggestion ?</summary><p>${escapeHtml(item.reason)}</p><div class="source-chips">${chips}</div></details>
     </div>
     <div class="card-actions">
-      <a class="listen-link bandcamp" href="${bandcampUrl}" target="_blank" rel="noopener noreferrer">Bandcamp</a>
-      <a class="listen-link youtube" href="${youtubeUrl}" target="_blank" rel="noopener noreferrer">YouTube</a>
       <button class="save-btn ${saved ? 'saved' : ''}" data-artist="${escapeHtml(item.name)}">${saveButtonText(item.name)}</button>
-      <button class="explore-btn" data-artist="${escapeHtml(item.name)}">Explorer</button>
+      <button class="explore-btn" data-artist="${escapeHtml(item.name)}">Explorer →</button>
     </div>
   </div>`;
 }
@@ -533,6 +598,25 @@ function sectionWrap(titleHtml, bodyHtml, count) {
       <span class="count">${count} resultats</span>
     </div>${bodyHtml}
   </div>`;
+}
+
+let requestVersion = 0;
+async function fetchDiscovery(url) {
+  const version = ++requestVersion;
+  const sections = document.getElementById('sections');
+  sections.innerHTML = '<div aria-hidden="true"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
+  sections.setAttribute('aria-busy', 'true');
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Service indisponible. Réessayez dans un instant.');
+    const result = await response.json();
+    return version === requestVersion ? result : null;
+  } finally {
+    if (version === requestVersion) {
+      sections.innerHTML = '';
+      sections.setAttribute('aria-busy', 'false');
+    }
+  }
 }
 
 async function search(name) {
@@ -546,8 +630,8 @@ async function search(name) {
 
   let result;
   try {
-    const r = await fetch(`/api/search?name=${encodeURIComponent(name)}`);
-    result = await r.json();
+    result = await fetchDiscovery(`/api/search?name=${encodeURIComponent(name)}`);
+    if (!result) return;
   } catch (e) {
     setStatus(`Erreur : ${e.message}`, 'error');
     return;
@@ -593,8 +677,8 @@ async function exploreByMbid(mbid) {
   document.getElementById('errors').innerHTML = '';
   let result;
   try {
-    const r = await fetch(`/api/explore?mbid=${encodeURIComponent(mbid)}`);
-    result = await r.json();
+    result = await fetchDiscovery(`/api/explore?mbid=${encodeURIComponent(mbid)}`);
+    if (!result) return;
   } catch (e) {
     setStatus(`Erreur : ${e.message}`, 'error');
     return;
@@ -608,6 +692,7 @@ async function exploreByMbid(mbid) {
 
 function renderFull(result) {
   const a = result.artist;
+  if (!a) { setStatus('Cet artiste est momentanément indisponible. Réessayez.', 'warn'); return; }
   const ls = a['life-span'] || {};
   const tags = (result.tags || []).slice(0, 6);
   rememberExploration(a.name);
@@ -677,6 +762,7 @@ function renderLastfmOnly(name, lfm) {
 }
 
 function wireUpButtons() {
+  refreshSaveButtons();
   document.querySelectorAll('.save-btn').forEach(btn => {
     btn.addEventListener('click', () => toggleSavedArtist(btn.dataset.artist));
   });
@@ -699,6 +785,8 @@ document.getElementById('search-btn').addEventListener('click', () =>
 document.getElementById('artist-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') search(e.target.value);
 });
+document.getElementById('saved-toggle').addEventListener('click', () => document.getElementById('saved-dialog').showModal());
+document.getElementById('saved-close').addEventListener('click', () => document.getElementById('saved-dialog').close());
 renderSavedArtists();
 renderJourney();
 </script>
